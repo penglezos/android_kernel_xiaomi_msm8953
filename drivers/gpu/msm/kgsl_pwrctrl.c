@@ -45,6 +45,10 @@
 
 #define DEFAULT_BUS_P 25
 
+#ifdef CONFIG_CPU_FREQ_GOV_ELEMENTALX
+int graphics_boost = 4;
+#endif
+
 /* Order deeply matters here because reasons. New entries go on the end */
 static const char * const clocks[] = {
 	"src_clk",
@@ -419,6 +423,10 @@ void kgsl_pwrctrl_pwrlevel_change(struct kgsl_device *device,
 
 	/* Timestamp the frequency change */
 	device->pwrscale.freq_change_time = ktime_to_ms(ktime_get());
+
+#ifdef CONFIG_CPU_FREQ_GOV_ELEMENTALX
+        graphics_boost = pwr->active_pwrlevel;
+#endif
 }
 EXPORT_SYMBOL(kgsl_pwrctrl_pwrlevel_change);
 
