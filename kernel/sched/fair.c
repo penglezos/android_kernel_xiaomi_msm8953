@@ -4829,7 +4829,7 @@ enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 	 * If we're the current task, we must renormalise before calling
 	 * update_curr().
 	 */
-	if (!(flags & ENQUEUE_WAKEUP) || (flags & ENQUEUE_MIGRATED))
+	if (renorm && curr)
 		se->vruntime += cfs_rq->min_vruntime;
 
 	update_curr(cfs_rq);
