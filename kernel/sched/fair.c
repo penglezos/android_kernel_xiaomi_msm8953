@@ -4807,7 +4807,7 @@ static void check_enqueue_throttle(struct cfs_rq *cfs_rq);
  *
  * WAKEUP (remote)
  *
- *	->migrate_task_rq_fair() (p->state == TASK_WAKING)
+ *	->task_waking_fair()
  *	  vruntime -= min_vruntime
  *
  *	enqueue
@@ -6194,6 +6194,33 @@ static unsigned long cpu_avg_load_per_task(int cpu)
 		return load_avg / nr_running;
 
 	return 0;
+}
+
+/*
+ * Called to migrate a waking task; as blocked tasks retain absolute vruntime
+ * the migration needs to deal with this by subtracting the old and adding the
+ * new min_vruntime -- the latter is done by enqueue_entity() when placing
+ * the task on the new runqueue.
+ */
+static void task_waking_fair(struct task_struct *p)
+{
+	struct sched_entity *se = &p->se;
+	struct cfs_rq *cfs_rq = cfs_rq_of(se);
+	u64 min_vruntime;
+
+#ifndef CONFIG_64BIT
+	u64 min_vruntime_copy;
+
+	do {
+		min_vruntime_copy = cfs_rq->min_vruntime_copy;
+		smp_rmb();
+		min_vruntime = cfs_rq->min_vruntime;
+	} while (min_vruntime != min_vruntime_copy);
+#else
+	min_vruntime = cfs_rq->min_vruntime;
+#endif
+
+	se->vruntime -= min_vruntime;
 }
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
