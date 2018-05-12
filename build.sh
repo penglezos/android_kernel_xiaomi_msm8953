@@ -10,14 +10,20 @@ echo -e "***********************************************"
 LC_ALL=C date +%Y-%m-%d
 date=`date +"%Y%m%d-%H%M"`
 BUILD_START=$(date +"%s")
-export CROSS_COMPILE="/home/englezos/kernel/aarch64-linux-android-4.9/bin/aarch64-linux-android-"
-export ARCH=arm64 && export SUBARCH=arm64
+export ARCH=arm64
+export SUBARCH=arm64
 
-mkdir -p out
-make O=out clean
-make O=out mrproper
-make O=out mido_defconfig
-make O=out -j$(nproc --all)
+export CLANG_PATH=/home/englezos/kernel/clang/bin/
+export PATH=${CLANG_PATH}:${PATH}
+export CLANG_TRIPLE=aarch64-linux-gnu-
+export TCHAIN_PATH="/home/englezos/kernel/aarch64-linux-android-4.9/bin/aarch64-linux-android-"
+export CROSS_COMPILE="${CCACHE} ${TCHAIN_PATH}"
+export CLANG_TCHAIN="/home/englezos/kernel/clang/bin/"
+export KBUILD_COMPILER_STRING="$(${CLANG_TCHAIN} --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g')"
+make clean O=out/
+make mrproper O=out/
+make CC=clang mido_defconfig O=out/
+make CC=clang -j$(nproc --all) O=out/
 
 BUILD_END=$(date +"%s")
 DIFF=$(($BUILD_END - $BUILD_START))
