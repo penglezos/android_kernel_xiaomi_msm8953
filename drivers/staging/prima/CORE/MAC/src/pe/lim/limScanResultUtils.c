@@ -452,7 +452,23 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
      */
     if(pBPR->channelSwitchPresent)
     {
-        return;
+       if (pBPR->ext_chan_switch_ann.new_channel !=
+           limGetChannelFromBeacon(pMac, pBPR))
+           return;
+    }
+
+    if(pBPR->ecsa_present) {
+       limLog(pMac, LOGW, FL("ECSA IE present"));
+       /* Still add to scan result if ECSA IE present and new channel
+        * equal to current channel.
+        */
+       if (pBPR->channelNumber!= HAL_INVALID_CHANNEL_ID &&
+           pBPR->ext_chan_switch_ann.new_channel != HAL_INVALID_CHANNEL_ID &&
+           pBPR->channelNumber != pBPR->ext_chan_switch_ann.new_channel) {
+             limLog(pMac, LOGW, FL("ignore this AP"));
+             return;
+        }
+
     }
 
     if(pBPR->ecsa_present) {
