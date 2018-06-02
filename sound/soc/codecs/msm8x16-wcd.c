@@ -1,4 +1,4 @@
-/* Copyright (c) 2015-2017, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2015-2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -98,11 +98,7 @@ enum {
 #define SPK_PMD 2
 #define SPK_PMU 3
 
-#ifdef CONFIG_MACH_XIAOMI_TISSOT
-#define MICBIAS_DEFAULT_VAL 2200000
-#else
 #define MICBIAS_DEFAULT_VAL 1800000
-#endif
 #define MICBIAS_MIN_VAL 1600000
 #define MICBIAS_STEP_SIZE 50000
 
@@ -2613,7 +2609,7 @@ static const struct snd_kcontrol_new msm8x16_wcd_snd_controls[] = {
 					8, 0, analog_gain),
 	SOC_SINGLE_TLV("ADC3 Volume", MSM8X16_WCD_A_ANALOG_TX_3_EN, 3,
 					8, 0, analog_gain),
-
+#ifndef CONFIG_SOUND_CONTROL
 	SOC_SINGLE_SX_TLV("RX1 Digital Volume",
 			  MSM8X16_WCD_A_CDC_RX1_VOL_CTL_B2_CTL,
 			0,  -84, 40, digital_gain),
@@ -2623,7 +2619,7 @@ static const struct snd_kcontrol_new msm8x16_wcd_snd_controls[] = {
 	SOC_SINGLE_SX_TLV("RX3 Digital Volume",
 			  MSM8X16_WCD_A_CDC_RX3_VOL_CTL_B2_CTL,
 			0,  -84, 40, digital_gain),
-
+#endif
 	SOC_SINGLE_SX_TLV("DEC1 Volume",
 			  MSM8X16_WCD_A_CDC_TX1_VOL_CTL_GAIN,
 			0,  -84, 40, digital_gain),
@@ -3894,22 +3890,12 @@ static int msm8x16_wcd_codec_config_compander(struct snd_soc_codec *codec,
 		msm8x16_wcd->comp_enabled[interp_n]);
 
 	/* compander is not enabled */
-	if (!msm8x16_wcd->comp_enabled[interp_n]) {
-		if (interp_n < MSM8X16_WCD_RX3)
-			if (get_codec_version(msm8x16_wcd) >= DIANGU)
-				snd_soc_update_bits(codec,
-					MSM8X16_WCD_A_ANALOG_RX_COM_BIAS_DAC,
-					0x08, 0x00);
+	if (!msm8x16_wcd->comp_enabled[interp_n])
 		return 0;
-	}
 
 	switch (msm8x16_wcd->comp_enabled[interp_n]) {
 	case COMPANDER_1:
 		if (SND_SOC_DAPM_EVENT_ON(event)) {
-			if (get_codec_version(msm8x16_wcd) >= DIANGU)
-				snd_soc_update_bits(codec,
-					MSM8X16_WCD_A_ANALOG_RX_COM_BIAS_DAC,
-					0x08, 0x08);
 			/* Enable Compander Clock */
 			snd_soc_update_bits(codec,
 				MSM8X16_WCD_A_CDC_COMP0_B2_CTL, 0x0F, 0x09);
@@ -4092,6 +4078,11 @@ void wcd_imped_config(struct snd_soc_codec *codec,
 			 __func__);
 		return;
 	}
+	if (value >= wcd_imped_val[ARRAY_SIZE(wcd_imped_val) - 1]) {
+		pr_err("%s, invalid imped, greater than 48 Ohm\n = %d\n",
+			__func__, value);
+		return;
+	}
 
 	codec_version = get_codec_version(msm8x16_wcd);
 
@@ -4102,9 +4093,9 @@ void wcd_imped_config(struct snd_soc_codec *codec,
 		case CONGA:
 			/*
 			 * For 32Ohm load and higher loads, Set 0x19E
-			 * bit 5 to 1 (POS_0_DB_DI). For loads lower
+			 * bit 5 to 1 (POS_6_DB_DI). For loads lower
 			 * than 32Ohm (such as 16Ohm load), Set 0x19E
-			 * bit 5 to 0 (POS_M4P5_DB_DI)
+			 * bit 5 to 0 (POS_1P5_DB_DI)
 			 */
 			if (value >= 32)
 				snd_soc_update_bits(codec,
@@ -4240,9 +4231,7 @@ static int msm8x16_wcd_lo_dac_event(struct snd_soc_dapm_widget *w,
 			MSM8X16_WCD_A_ANALOG_RX_LO_DAC_CTL, 0x08, 0x08);
 		snd_soc_update_bits(codec,
 			MSM8X16_WCD_A_ANALOG_RX_LO_DAC_CTL, 0x40, 0x40);
-#if (defined CONFIG_MACH_XIAOMI_MIDO) || (defined CONFIG_MACH_XIAOMI_TISSOT)
 		msleep(5);
-#endif
 		break;
 	case SND_SOC_DAPM_POST_PMU:
 		snd_soc_update_bits(codec,
@@ -4468,10 +4457,7 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"LINEOUT PA", NULL, "LINE_OUT"},
 	{"LINE_OUT", "Switch", "LINEOUT DAC"},
 	{"LINEOUT DAC", NULL, "RX3 CHAIN"},
-#if (defined CONFIG_MACH_XIAOMI_MIDO) || (defined CONFIG_MACH_XIAOMI_TISSOT)
 	{ "Ext Spk", NULL, "LINEOUT PA"},
-#endif
-
 	/* lineout to WSA */
 	{"WSA_SPK OUT", NULL, "LINEOUT PA"},
 
@@ -4518,9 +4504,6 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"RX2 MIX1 INP2", "RX3", "I2S RX3"},
 	{"RX2 MIX1 INP2", "IIR1", "IIR1"},
 	{"RX2 MIX1 INP2", "IIR2", "IIR2"},
-	{"RX2 MIX1 INP3", "RX1", "I2S RX1"},
-	{"RX2 MIX1 INP3", "RX2", "I2S RX2"},
-	{"RX2 MIX1 INP3", "RX3", "I2S RX3"},
 
 	{"RX3 MIX1 INP1", "RX1", "I2S RX1"},
 	{"RX3 MIX1 INP1", "RX2", "I2S RX2"},
@@ -4532,9 +4515,6 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"RX3 MIX1 INP2", "RX3", "I2S RX3"},
 	{"RX3 MIX1 INP2", "IIR1", "IIR1"},
 	{"RX3 MIX1 INP2", "IIR2", "IIR2"},
-	{"RX3 MIX1 INP3", "RX1", "I2S RX1"},
-	{"RX3 MIX1 INP3", "RX2", "I2S RX2"},
-	{"RX3 MIX1 INP3", "RX3", "I2S RX3"},
 
 	{"RX1 MIX2 INP1", "IIR1", "IIR1"},
 	{"RX2 MIX2 INP1", "IIR1", "IIR1"},
@@ -5488,7 +5468,7 @@ static struct regulator *wcd8x16_wcd_codec_find_regulator(
 			return msm8x16->supplies[i].consumer;
 	}
 
-	dev_dbg(msm8x16->dev, "Error: regulator not found:%s\n"
+	dev_err(msm8x16->dev, "Error: regulator not found:%s\n"
 				, name);
 	return NULL;
 }
@@ -5499,20 +5479,13 @@ static int msm8x16_wcd_device_down(struct snd_soc_codec *codec)
 	struct msm8x16_wcd_priv *msm8x16_wcd_priv =
 		snd_soc_codec_get_drvdata(codec);
 	int i;
-	unsigned int tx_1_en;
-	unsigned int tx_2_en;
 
 	pdata = snd_soc_card_get_drvdata(codec->component.card);
 	dev_dbg(codec->dev, "%s: device down!\n", __func__);
-
-	tx_1_en = msm8x16_wcd_read(codec, MSM8X16_WCD_A_ANALOG_TX_1_EN);
-	tx_2_en = msm8x16_wcd_read(codec, MSM8X16_WCD_A_ANALOG_TX_2_EN);
-	tx_1_en = tx_1_en & 0x7f;
-	tx_2_en = tx_2_en & 0x7f;
 	msm8x16_wcd_write(codec,
-		MSM8X16_WCD_A_ANALOG_TX_1_EN, tx_1_en);
+		MSM8X16_WCD_A_ANALOG_TX_1_EN, 0x3);
 	msm8x16_wcd_write(codec,
-		MSM8X16_WCD_A_ANALOG_TX_2_EN, tx_2_en);
+		MSM8X16_WCD_A_ANALOG_TX_2_EN, 0x3);
 	if (msm8x16_wcd_priv->boost_option == BOOST_ON_FOREVER) {
 		if ((snd_soc_read(codec, MSM8X16_WCD_A_ANALOG_SPKR_DRV_CTL)
 			& 0x80) == 0) {
@@ -5761,15 +5734,123 @@ static void msm8x16_wcd_configure_cap(struct snd_soc_codec *codec,
 	}
 }
 
+#ifdef CONFIG_SOUND_CONTROL
+static struct snd_soc_codec *sound_control_codec_ptr;
+
+static ssize_t headphone_gain_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d %d\n",
+		snd_soc_read(sound_control_codec_ptr, MSM8X16_WCD_A_CDC_RX1_VOL_CTL_B2_CTL),
+		snd_soc_read(sound_control_codec_ptr, MSM8X16_WCD_A_CDC_RX2_VOL_CTL_B2_CTL)
+	);
+}
+
+static ssize_t headphone_gain_store(struct kobject *kobj,
+		struct kobj_attribute *attr, const char *buf, size_t count)
+{
+
+	int input_l, input_r;
+
+	sscanf(buf, "%d %d", &input_l, &input_r);
+
+	if (input_l < -84 || input_l > 20)
+		input_l = 0;
+
+	if (input_r < -84 || input_r > 20)
+		input_r = 0;
+
+	snd_soc_write(sound_control_codec_ptr, MSM8X16_WCD_A_CDC_RX1_VOL_CTL_B2_CTL, input_l);
+	snd_soc_write(sound_control_codec_ptr, MSM8X16_WCD_A_CDC_RX2_VOL_CTL_B2_CTL, input_r);
+
+	return count;
+}
+
+static struct kobj_attribute headphone_gain_attribute =
+	__ATTR(headphone_gain, 0664,
+		headphone_gain_show,
+		headphone_gain_store);
+
+static ssize_t mic_gain_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n",
+		snd_soc_read(sound_control_codec_ptr, MSM8X16_WCD_A_CDC_TX1_VOL_CTL_GAIN));
+}
+
+static ssize_t mic_gain_store(struct kobject *kobj,
+		struct kobj_attribute *attr, const char *buf, size_t count)
+{
+	int input;
+
+	sscanf(buf, "%d", &input);
+
+	if (input < -10 || input > 20)
+		input = 0;
+
+	snd_soc_write(sound_control_codec_ptr, MSM8X16_WCD_A_CDC_TX1_VOL_CTL_GAIN, input);
+
+	return count;
+}
+
+static struct kobj_attribute mic_gain_attribute =
+	__ATTR(mic_gain, 0664,
+		mic_gain_show,
+		mic_gain_store);
+
+static ssize_t speaker_gain_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n",
+		snd_soc_read(sound_control_codec_ptr, MSM8X16_WCD_A_CDC_RX3_VOL_CTL_B2_CTL));
+}
+
+static ssize_t speaker_gain_store(struct kobject *kobj,
+		struct kobj_attribute *attr, const char *buf, size_t count)
+{
+	int input;
+
+	sscanf(buf, "%d", &input);
+
+	if (input < -10 || input > 20)
+		input = 0;
+
+	snd_soc_write(sound_control_codec_ptr, MSM8X16_WCD_A_CDC_RX3_VOL_CTL_B2_CTL, input);
+
+	return count;
+}
+
+static struct kobj_attribute speaker_gain_attribute =
+	__ATTR(speaker_gain, 0664,
+		speaker_gain_show,
+		speaker_gain_store);
+
+static struct attribute *sound_control_attrs[] = {
+		&headphone_gain_attribute.attr,
+		&mic_gain_attribute.attr,
+		&speaker_gain_attribute.attr,
+		NULL,
+};
+
+static struct attribute_group sound_control_attr_group = {
+		.attrs = sound_control_attrs,
+};
+
+static struct kobject *sound_control_kobj;
+#endif
+
 static int msm8x16_wcd_codec_probe(struct snd_soc_codec *codec)
 {
 	struct msm8x16_wcd_priv *msm8x16_wcd_priv;
 	struct msm8x16_wcd *msm8x16_wcd;
 	struct msm8x16_wcd_pdata *pdata;
 	int i, ret;
-	const char *subsys_name = NULL;
 
 	dev_dbg(codec->dev, "%s()\n", __func__);
+
+#ifdef CONFIG_SOUND_CONTROL
+	sound_control_codec_ptr = codec;
+#endif
 
 	msm8x16_wcd_priv = kzalloc(sizeof(struct msm8x16_wcd_priv), GFP_KERNEL);
 	if (!msm8x16_wcd_priv)
@@ -5897,19 +5978,9 @@ static int msm8x16_wcd_codec_probe(struct snd_soc_codec *codec)
 	/* Set initial cap mode */
 	msm8x16_wcd_configure_cap(codec, false, false);
 	registered_codec = codec;
-	ret = of_property_read_string(codec->dev->of_node,
-				"qcom,subsys-name",
-				&subsys_name);
-	if (ret) {
-		dev_dbg(codec->dev, "missing subsys-name entry in dt node\n");
-		adsp_state_notifier =
-			subsys_notif_register_notifier("adsp",
-			&adsp_state_notifier_block);
-	} else {
-		adsp_state_notifier =
-			subsys_notif_register_notifier(subsys_name,
-			&adsp_state_notifier_block);
-	}
+	adsp_state_notifier =
+	    subsys_notif_register_notifier("adsp",
+					   &adsp_state_notifier_block);
 	if (!adsp_state_notifier) {
 		dev_err(codec->dev, "Failed to register adsp state notifier\n");
 		iounmap(msm8x16_wcd->dig_base);
@@ -6200,7 +6271,8 @@ static int msm8x16_wcd_spmi_probe(struct spmi_device *spmi)
 
 	dev_dbg(&spmi->dev, "%s(%d):slave ID = 0x%x\n",
 		__func__, __LINE__,  spmi->sid);
-
+	printk("%s(%d):slave ID = 0x%x\n",
+		__func__, __LINE__,  spmi->sid);
 	adsp_state = apr_get_subsys_state();
 	if (adsp_state != APR_SUBSYS_LOADED) {
 		dev_dbg(&spmi->dev, "Adsp is not loaded yet %d\n",
@@ -6298,6 +6370,19 @@ static int msm8x16_wcd_spmi_probe(struct spmi_device *spmi)
 	}
 	dev_set_drvdata(&spmi->dev, msm8x16);
 	spmi_dev_registered_cnt++;
+
+#ifdef CONFIG_SOUND_CONTROL
+	sound_control_kobj = kobject_create_and_add("sound_control", kernel_kobj);
+	if (sound_control_kobj == NULL) {
+		pr_warn("%s kobject create failed!\n", __func__);
+        }
+
+	ret = sysfs_create_group(sound_control_kobj, &sound_control_attr_group);
+        if (ret) {
+		pr_warn("%s sysfs file create failed!\n", __func__);
+	}
+#endif
+
 register_codec:
 	if ((spmi_dev_registered_cnt == MAX_MSM8X16_WCD_DEVICE) && (!ret)) {
 		if (msm8x16_wcd_modules[0].spmi) {
