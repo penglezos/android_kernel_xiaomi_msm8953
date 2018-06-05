@@ -41,3 +41,5 @@ obj-$(CONFIG_IR_IMG) += img-ir/
 
 # peelir using spi
 obj-$(CONFIG_SPI_PEELIR) += peelir.o
+
+ccflags-y := $(call cc-option,-Oz,-Os)
