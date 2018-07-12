@@ -2160,10 +2160,12 @@ int kgsl_pwrctrl_init(struct kgsl_device *device)
 	kgsl_pwrctrl_clk_set_rate(pwr->grp_clks[0],
 		pwr->pwrlevels[pwr->num_pwrlevels - 1].gpu_freq, clocks[0]);
 
+#if 0
 	freq = clk_round_rate(pwr->grp_clks[6], KGSL_RBBMTIMER_CLK_FREQ);
 	if (freq > 0)
 		kgsl_pwrctrl_clk_set_rate(pwr->grp_clks[6],
 			freq, clocks[6]);
+#endif
 
 	result = get_regulators(device);
 	if (result)
