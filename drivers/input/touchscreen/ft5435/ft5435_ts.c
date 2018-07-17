@@ -1505,6 +1505,11 @@ static int ft5435_ts_resume(struct device *dev)
 		return 0;
 	}
 
+#if defined(FOCALTECH_TP_GESTURE)
+	if (gesture_func_on)
+		disable_irq(data->client->irq);
+#endif
+
 	/* release all touches */
 	input_mt_report_slot_state(data->input_dev, MT_TOOL_FINGER, 0);
 	__set_bit(BTN_TOUCH, data->input_dev->keybit);
