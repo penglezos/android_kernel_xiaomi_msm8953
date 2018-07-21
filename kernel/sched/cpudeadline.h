@@ -26,6 +26,8 @@ int cpudl_find(struct cpudl *cp, struct task_struct *p,
 void cpudl_set(struct cpudl *cp, int cpu, u64 dl);
 void cpudl_clear(struct cpudl *cp, int cpu);
 int cpudl_init(struct cpudl *cp);
+void cpudl_set_freecpu(struct cpudl *cp, int cpu);
+void cpudl_clear_freecpu(struct cpudl *cp, int cpu);
 void cpudl_cleanup(struct cpudl *cp);
 #else
 #define cpudl_set(cp, cpu, dl) do { } while (0)

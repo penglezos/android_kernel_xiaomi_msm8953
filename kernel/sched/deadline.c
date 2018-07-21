@@ -1224,9 +1224,6 @@ static int find_later_rq(struct task_struct *task)
 	 * We have to consider system topology and task affinity
 	 * first, then we can look for a suitable cpu.
 	 */
-	cpumask_copy(later_mask, task_rq(task)->rd->span);
-	cpumask_and(later_mask, later_mask, cpu_active_mask);
-	cpumask_and(later_mask, later_mask, &task->cpus_allowed);
 	best_cpu = cpudl_find(&task_rq(task)->rd->cpudl,
 			task, later_mask);
 	if (best_cpu == -1)
@@ -1598,6 +1595,7 @@ static void rq_online_dl(struct rq *rq)
 	if (rq->dl.overloaded)
 		dl_set_overload(rq);
 
+	cpudl_set_freecpu(&rq->rd->cpudl, rq->cpu);
 	if (rq->dl.dl_nr_running > 0)
 		cpudl_set(&rq->rd->cpudl, rq->cpu, rq->dl.earliest_dl.curr);
 }
@@ -1608,7 +1606,11 @@ static void rq_offline_dl(struct rq *rq)
 	if (rq->dl.overloaded)
 		dl_clear_overload(rq);
 
+<<<<<<< HEAD
 	cpudl_clear(&rq->rd->cpudl, rq->cpu);
+=======
+	cpudl_set(&rq->rd->cpudl, rq->cpu, 0, 0);
+>>>>>>> 986f13abd698... sched/deadline: Modify cpudl::free_cpus to reflect rd->online
 	cpudl_clear_freecpu(&rq->rd->cpudl, rq->cpu);
 }
 
