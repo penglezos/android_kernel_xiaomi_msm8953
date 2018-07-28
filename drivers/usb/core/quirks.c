@@ -153,14 +153,10 @@ static const struct usb_device_id usb_quirk_list[] = {
 
 	/* ELSA MicroLink 56K */
 	{ USB_DEVICE(0x05cc, 0x2267), .driver_info = USB_QUIRK_RESET_RESUME },
-0847), .driver_info = USB_QUIRK_DELAY_INIT },
-	{ USB_DEVICE(0x0
-0847), .driver_info = USB_QUIRK_DELAY_INIT },
-	{ USB_DEVICE(0x0ub, internally used by Moshi USB to Ethernet Adapter */
-0847), .driver_info = USB_QUIRK_DELAY_INIT },
-	{ USB_DEVICE(0x03, 0x0616), .driver_info = USB_QUIRK_NO_LPM },
-0847), .driver_info = USB_QUIRK_DELAY_INIT },
-	{ USB_DEVICE(0x0
+
+	/* Genesys Logic hub, internally used by Moshi USB to Ethernet Adapter */
+	{ USB_DEVICE(0x05e3, 0x0616), .driver_info = USB_QUIRK_NO_LPM },
+
 	/* Avision AV600U */
 	{ USB_DEVICE(0x0638, 0x0a13), .driver_info =
 	  USB_QUIRK_STRING_FETCH_255 },
