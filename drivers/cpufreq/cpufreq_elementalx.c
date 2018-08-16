@@ -21,7 +21,7 @@
 #define DEF_FREQUENCY_UP_THRESHOLD		(90)
 #define DEF_FREQUENCY_DOWN_DIFFERENTIAL		(20)
 #define DEF_INPUT_EVENT_MIN_FREQ		(1267200)
-#define DEF_INPUT_EVENT_TIMEOUT			(500)
+#define DEF_INPUT_EVENT_TIMEOUT			(1500)
 #define DEF_GBOOST_MIN_FREQ			(1728000)
 #define DEF_MAX_SCREEN_OFF_FREQ			(1728000)
 #define MIN_SAMPLING_RATE			(10000)
@@ -34,6 +34,8 @@ static DEFINE_PER_CPU(struct ex_cpu_dbs_info_s, ex_cpu_dbs_info);
 static unsigned int up_threshold_level[2] __read_mostly = {95, 85};
 
 static struct ex_governor_data {
+	bool input_event_boost;
+	unsigned long input_event_boost_expired;
 	unsigned int input_event_timeout;
 	unsigned int input_min_freq;
 	unsigned int max_screen_off_freq;
@@ -42,6 +44,8 @@ static struct ex_governor_data {
 	bool suspended;
 	struct notifier_block notif;
 } ex_data = {
+	.input_event_boost = false,
+	.input_event_boost_expired = 0,
 	.input_event_timeout = DEF_INPUT_EVENT_TIMEOUT,
 	.input_min_freq = DEF_INPUT_EVENT_MIN_FREQ,
 	.max_screen_off_freq = DEF_MAX_SCREEN_OFF_FREQ,
@@ -50,28 +54,25 @@ static struct ex_governor_data {
 	.suspended = false
 };
 
-
-static int input_event_boosted(int cpu)
+static int input_event_boosted(void)
 {
-	struct ex_cpu_dbs_info_s *dbs_info = &per_cpu(ex_cpu_dbs_info, cpu);
-
-	if (dbs_info->input_event_boost) {
-		if (time_before(jiffies, dbs_info->input_event_boost_expired)) {
+	if (ex_data.input_event_boost) {
+		if (time_before(jiffies, ex_data.input_event_boost_expired)) {
 			return 1;
 		}
-		dbs_info->input_event_boost = false;
+		ex_data.input_event_boost = false;
 	}
 
 	return 0;
 }
 
-static inline unsigned int ex_freq_increase(struct cpufreq_policy *p, unsigned int freq, int cpu)
+static inline unsigned int ex_freq_increase(struct cpufreq_policy *p, unsigned int freq)
 {
 	if (freq > p->max) {
 		return p->max;
 	} 
 	
-	else if (input_event_boosted(cpu) || ex_data.g_count > 30) {
+	else if (input_event_boosted() || ex_data.g_count > 30) {
 		freq = MAX(freq, ex_data.input_min_freq);
 	} 
 
@@ -118,7 +119,7 @@ static void ex_check_cpu(int cpu, unsigned int load)
 			freq_next = MAX(freq_next, ex_tuners->gboost_min_freq);
 		}
 
-		target_freq = ex_freq_increase(policy, freq_next, cpu);
+		target_freq = ex_freq_increase(policy, freq_next);
 
 		__cpufreq_driver_target(policy, target_freq, CPUFREQ_RELATION_H);
 
@@ -128,7 +129,7 @@ static void ex_check_cpu(int cpu, unsigned int load)
 	//normal mode
 	if (max_load_freq > up_threshold_level[1] * cur_freq) {
 
-		if (FREQ_NEED_BURST(cur_freq) &&
+		if (input_event_boosted() && FREQ_NEED_BURST(cur_freq) &&
 				load > up_threshold_level[0]) {
 			freq_next = policy->max;
 		}
@@ -151,14 +152,14 @@ static void ex_check_cpu(int cpu, unsigned int load)
 			}
 		}
 
-		target_freq = ex_freq_increase(policy, freq_next, cpu);
+		target_freq = ex_freq_increase(policy, freq_next);
 
 		__cpufreq_driver_target(policy, target_freq, CPUFREQ_RELATION_H);
 
 		goto finished;
 	}
 
-	if (input_event_boosted(cpu)) {
+	if (input_event_boosted()) {
 		goto finished;
 	}
 
@@ -172,7 +173,7 @@ static void ex_check_cpu(int cpu, unsigned int load)
 		freq_next = max_load_freq /
 				(ex_tuners->up_threshold -
 				 ex_tuners->down_differential);
-
+		
 		freq_next = MAX(freq_next, policy->min);
 
 		__cpufreq_driver_target(policy, freq_next,
@@ -207,20 +208,10 @@ static void ex_dbs_timer(struct work_struct *work)
 }
 
 
-static void dbs_input_event_boost(int cpu)
-{
-	struct ex_cpu_dbs_info_s *dbs_info = &per_cpu(ex_cpu_dbs_info, cpu);
-
-	dbs_info->input_event_boost = true;
-	dbs_info->input_event_boost_expired = jiffies +
-		usecs_to_jiffies(ex_data.input_event_timeout * 1000);
-}
 
 static void dbs_input_event(struct input_handle *handle, unsigned int type,
 		unsigned int code, int value)
 {
-	int i;
-
 	if (ex_data.suspended)
 		return;
 
@@ -228,9 +219,10 @@ static void dbs_input_event(struct input_handle *handle, unsigned int type,
 		return;
 
 	if (type == EV_ABS && code == ABS_MT_TRACKING_ID) {
-		if (value != -1) {
-			for_each_online_cpu(i)
-				dbs_input_event_boost(i);
+		if (value != -1) {		
+			ex_data.input_event_boost = true;
+			ex_data.input_event_boost_expired = jiffies +
+				usecs_to_jiffies(ex_data.input_event_timeout * 1000);
 		}
 	}
 }
