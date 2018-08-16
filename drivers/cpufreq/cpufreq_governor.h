@@ -126,6 +126,7 @@ static void *get_cpu_dbs_info_s(int cpu)				\
  * cdbs: common dbs
  * od_*: On-demand governor
  * cs_*: Conservative governor
+ * ex_*: ElementalX governor
  * ac_*: Alucard governor
  * dk_*: Darkness governor
  * nm_*: Nightmare governor
@@ -172,6 +173,11 @@ struct cs_cpu_dbs_info_s {
 	unsigned int enable:1;
 };
 
+struct ex_cpu_dbs_info_s {
+	struct cpu_dbs_common_info cdbs;
+	unsigned int enable:1;
+};
+
 struct ac_cpu_dbs_info_s {
 	struct cpu_dbs_common_info cdbs;
 	struct cpufreq_frequency_table *freq_table;
@@ -209,6 +215,19 @@ struct cs_dbs_tuners {
 	unsigned int down_threshold;
 	unsigned int freq_step;
 };
+
+struct ex_dbs_tuners {
+	unsigned int ignore_nice_load;
+	unsigned int sampling_rate;
+	unsigned int up_threshold;
+	unsigned int down_differential;
+	unsigned int gboost;
+	unsigned int gboost_min_freq;
+	unsigned int input_event_timeout;
+	unsigned int input_min_freq;
+	unsigned int max_screen_off_freq;
+};
+
 
 struct ac_dbs_tuners {
 	unsigned int ignore_nice_load;
@@ -249,9 +268,10 @@ struct common_dbs_data {
 	/* Common across governors */
 	#define GOV_ONDEMAND		0
 	#define GOV_CONSERVATIVE	1
-	#define GOV_ALUCARD			2
-	#define GOV_DARKNESS		3
-	#define GOV_NIGHTMARE		4
+	#define GOV_ELEMENTALX		2
+	#define GOV_ALUCARD			3
+	#define GOV_DARKNESS		4
+	#define GOV_NIGHTMARE		5
 	int governor;
 	struct attribute_group *attr_group_gov_sys; /* one governor - system */
 	struct attribute_group *attr_group_gov_pol; /* one governor - policy */
