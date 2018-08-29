@@ -1613,7 +1613,6 @@ struct bnx2x {
 	struct link_vars	link_vars;
 	u32			link_cnt;
 	struct bnx2x_link_report_data last_reported_link;
-	bool			force_link_down;
 
 	struct mdio_if_info	mdio;
 
