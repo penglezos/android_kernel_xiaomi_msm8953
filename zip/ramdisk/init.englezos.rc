@@ -1,0 +1,8 @@
+# Englezos Kernel tweaks and parameters
+# Copyright (C) 2018 Englezos
+
+import /init.performance_profiles.rc
+
+on property:sys.boot_completed=1
+    # Declare support for Franco Kernel Manager Performance Profiles
+    setprop fku.profiles 1
