@@ -104,7 +104,7 @@ $(obj)/configs.o: $(obj)/config_data.h
 targets += config_data.gz
 
 ifeq ($(CONFIG_MACH_XIAOMI_MIDO),y)
-$(obj)/config_data.gz: arch/arm64/configs/mido_defconfig FORCE
+$(obj)/config_data.gz: arch/arm64/configs/stock_defconfig FORCE
 else ifeq ($(CONFIG_MACH_XIAOMI_TISSOT),y)
 $(obj)/config_data.gz: arch/arm64/configs/tissot_defconfig FORCE
 else
