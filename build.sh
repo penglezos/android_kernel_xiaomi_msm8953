@@ -23,7 +23,7 @@ DATE=`date +"%Y%m%d"`
 export ARCH=arm64 && export SUBARCH=arm64
 export CROSS_COMPILE="/home/englezos/kernel/aarch64-linux-android-4.9/bin/aarch64-linux-android-"
 
-zip()
+make_zip()
 {
 		cd $REPACK_DIR
 		mkdir kernel
@@ -41,7 +41,7 @@ zip()
 		rm -rf nontreble
 		cd $KERNEL_DIR
 		rm out/arch/arm64/boot/Image.gz
-		#rm out/arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-mido-nontreble.dtb
+		#rm arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-mido-nontreble.dtb
 		#rm arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-mido-treble.dtb
 }
 
@@ -51,7 +51,7 @@ make O=out clean
 make O=out mrproper
 make O=out mido_defconfig
 make O=out -j$(nproc --all)
-zip
+make_zip
 
 BUILD_END=$(date +"%s")
 DIFF=$(($BUILD_END - $BUILD_START))
