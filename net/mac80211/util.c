@@ -1876,8 +1876,7 @@ int ieee80211_reconfig(struct ieee80211_local *local)
 		if (!sta->uploaded)
 			continue;
 
-		if (sta->sdata->vif.type != NL80211_IFTYPE_AP &&
-		    sta->sdata->vif.type != NL80211_IFTYPE_AP_VLAN)
+		if (sta->sdata->vif.type != NL80211_IFTYPE_AP)
 			continue;
 
 		for (state = IEEE80211_STA_NOTEXIST;

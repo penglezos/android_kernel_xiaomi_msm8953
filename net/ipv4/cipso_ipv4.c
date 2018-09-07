@@ -1591,17 +1591,9 @@ unsigned char *cipso_v4_optptr(const struct sk_buff *skb)
 	int taglen;
 
 	for (optlen = iph->ihl*4 - sizeof(struct iphdr); optlen > 0; ) {
-		switch (optptr[0]) {
-		case IPOPT_CIPSO:
+		if (optptr[0] == IPOPT_CIPSO)
 			return optptr;
-		case IPOPT_END:
-			return NULL;
-		case IPOPT_NOOP:
-			taglen = 1;
-			break;
-		default:
-			taglen = optptr[1];
-		}
+		taglen = optptr[1];
 		optlen -= taglen;
 		optptr += taglen;
 	}
