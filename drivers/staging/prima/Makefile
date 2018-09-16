@@ -14,4 +14,4 @@ clean::
 	rm -f *.o *.ko *.mod.c *.mod.o *~ .*.cmd Module.symvers
 	rm -rf .tmp_versions
 
-ccflags-y := $(call cc-option,-Oz,-Os)
+

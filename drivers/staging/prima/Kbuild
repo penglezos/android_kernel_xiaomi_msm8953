@@ -722,9 +722,6 @@ endif
 # Fix build for GCC 4.7
 EXTRA_CFLAGS += $(call cc-disable-warning,maybe-uninitialized,) -Wno-unused-function -Wno-unused-variable
 
-# Make thing smol
-EXTRA_CFLAGS += $(call cc-option,-Oz,-Os,)
-
 # Not gonna fix these warnings, clang!
 ifeq ($(cc-name),clang)
 EXTRA_CFLAGS += $(call cc-disable-warning,array-bounds,)
