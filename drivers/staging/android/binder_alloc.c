@@ -913,6 +913,7 @@ enum lru_status binder_alloc_free_page(struct list_head *item,
 	struct binder_alloc *alloc;
 	uintptr_t page_addr;
 	size_t index;
+	struct vm_area_struct *vma;
 
 	alloc = page->alloc;
 	if (!mutex_trylock(&alloc->mutex))
@@ -931,10 +932,15 @@ enum lru_status binder_alloc_free_page(struct list_head *item,
 		mm = alloc->vma_vm_mm;
 		if (!down_write_trylock(&mm->mmap_sem))
 			goto err_down_write_mmap_sem_failed;
+	}
 
+	list_del_init(item);
+	spin_unlock(lock);
+
+	if (vma) {
 		trace_binder_unmap_user_start(alloc, index);
 
-		zap_page_range(alloc->vma,
+		zap_page_range(vma,
 			       page_addr +
 			       alloc->user_buffer_offset,
 			       PAGE_SIZE, NULL);
@@ -953,10 +959,9 @@ enum lru_status binder_alloc_free_page(struct list_head *item,
 
 	trace_binder_unmap_kernel_end(alloc, index);
 
-	list_del_init(item);
-
+	spin_lock(lock);
 	mutex_unlock(&alloc->mutex);
-	return LRU_REMOVED;
+	return LRU_REMOVED_RETRY;
 
 err_down_write_mmap_sem_failed:
 	mmput(mm);
