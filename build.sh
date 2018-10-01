@@ -18,7 +18,7 @@ REPACK_DIR=$KERNEL_DIR/zip
 OUT=$KERNEL_DIR/out
 ZIP_NAME="$VERSION"-"$DATE"
 DTB="dtb"
-VERSION="6.0"
+VERSION="7.0"
 DATE=`date +"%Y%m%d"`
 export ARCH=arm64 && export SUBARCH=arm64
 export CROSS_COMPILE="/home/englezos/kernel/aarch64-linux-android-4.9/bin/aarch64-linux-android-"
