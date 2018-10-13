@@ -74,7 +74,7 @@ struct fpc1020_data {
 	struct wake_lock ttw_wl;
 	int irq_gpio;
 	int rst_gpio;
-	struct mutex lock;
+	struct rt_mutex lock;
 	bool prepared;
 	bool wakeup_enabled;
 	bool compatible_enabled;
@@ -93,7 +93,7 @@ static int hw_reset(struct  fpc1020_data *fpc1020);
 static int set_clks(struct fpc1020_data *fpc1020, bool enable)
 {
 	int rc = 0;
-	mutex_lock(&fpc1020->lock);
+	rt_mutex_lock(&fpc1020->lock);
 
 	if (enable == fpc1020->clocks_enabled)
 		goto out;
@@ -134,7 +134,7 @@ static int set_clks(struct fpc1020_data *fpc1020, bool enable)
 	}
 
 out:
-	mutex_unlock(&fpc1020->lock);
+	rt_mutex_unlock(&fpc1020->lock);
 	return rc;
 }
 
@@ -247,7 +247,7 @@ static int device_prepare(struct fpc1020_data *fpc1020, bool enable)
 {
 	int rc;
 
-	mutex_lock(&fpc1020->lock);
+	rt_mutex_lock(&fpc1020->lock);
 	if (enable && !fpc1020->prepared) {
 		fpc1020->prepared = true;
 		select_pin_ctl(fpc1020, "fpc1020_reset_reset");
@@ -266,7 +266,7 @@ static int device_prepare(struct fpc1020_data *fpc1020, bool enable)
 	} else {
 		rc = 0;
 	}
-	mutex_unlock(&fpc1020->lock);
+	rt_mutex_unlock(&fpc1020->lock);
 	return rc;
 }
 
@@ -540,7 +540,7 @@ static int fpc1020_probe(struct platform_device *pdev)
 	fpc1020->clocks_suspended = false;
 #endif
 
-	mutex_init(&fpc1020->lock);
+	rt_mutex_init(&fpc1020->lock);
 
 	wake_lock_init(&fpc1020->ttw_wl, WAKE_LOCK_SUSPEND, "fpc_ttw_wl");
 
@@ -560,7 +560,7 @@ static int fpc1020_remove(struct platform_device *pdev)
 	struct  fpc1020_data *fpc1020 = dev_get_drvdata(&pdev->dev);
 
 	sysfs_remove_group(&pdev->dev.kobj, &attribute_group);
-	mutex_destroy(&fpc1020->lock);
+	rt_mutex_destroy(&fpc1020->lock);
 	wake_lock_destroy(&fpc1020->ttw_wl);
 	dev_info(&pdev->dev, "%s\n", __func__);
 	return 0;
