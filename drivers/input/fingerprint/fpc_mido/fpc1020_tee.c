@@ -51,7 +51,7 @@
 #define PWR_ON_STEP_SLEEP 100
 #define PWR_ON_STEP_RANGE1 100
 #define PWR_ON_STEP_RANGE2 900
-#define FPC_TTW_HOLD_TIME 15
+#define FPC_TTW_HOLD_TIME 1000
 #define NUM_PARAMS_REG_ENABLE_SET 2
 
 static const char * const pctl_names[] = {
@@ -346,7 +346,7 @@ static ssize_t compatible_all_set(struct device *dev,
 	int irqf;
 	struct  fpc1020_data *fpc1020 = dev_get_drvdata(dev);
 	dev_err(dev, "compatible all enter %d\n", fpc1020->compatible_enabled);
-	if (!strncmp(buf, "enable", strlen("enable")) && !fpc1020->compatible_enabled) {
+	if (!strncmp(buf, "enable", strlen("enable")) && fpc1020->compatible_enabled != 1) {
 		rc = fpc1020_request_named_gpio(fpc1020, "fpc,gpio_irq",
 			&fpc1020->irq_gpio);
 		if (rc)
@@ -404,7 +404,7 @@ static ssize_t compatible_all_set(struct device *dev,
 
 		/* Request that the interrupt should be wakeable */
 		enable_irq_wake(gpio_to_irq(fpc1020->irq_gpio));
-		fpc1020->compatible_enabled = true;
+		fpc1020->compatible_enabled = 1;
 		if (of_property_read_bool(dev->of_node, "fpc,enable-on-boot")) {
 			dev_info(dev, "Enabling hardware\n");
 			(void)device_prepare(fpc1020, true);
@@ -412,7 +412,7 @@ static ssize_t compatible_all_set(struct device *dev,
 		(void)set_clks(fpc1020, false);
 #endif
 	}
-	} else if (!strncmp(buf, "disable", strlen("disable")) && fpc1020->compatible_enabled) {
+	} else if (!strncmp(buf, "disable", strlen("disable")) && fpc1020->compatible_enabled != 0) {
 		if (gpio_is_valid(fpc1020->irq_gpio)) {
 			devm_gpio_free(dev, fpc1020->irq_gpio);
 			pr_info("remove irq_gpio success\n");
@@ -422,7 +422,7 @@ static ssize_t compatible_all_set(struct device *dev,
 			pr_info("remove rst_gpio success\n");
 		}
 		devm_free_irq(dev, gpio_to_irq(fpc1020->irq_gpio), fpc1020);
-		fpc1020->compatible_enabled = false;
+		fpc1020->compatible_enabled = 0;
 	}
 	hw_reset(fpc1020);
 	return count;
