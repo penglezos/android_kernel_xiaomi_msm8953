@@ -17,7 +17,6 @@ KERNEL_DIR=$PWD
 REPACK_DIR=$KERNEL_DIR/zip
 OUT=$KERNEL_DIR/out
 ZIP_NAME="$VERSION"-"$DATE"
-DTB="dtb"
 VERSION="mido-8.0"
 DATE=`date +"%Y%m%d"`
 export ARCH=arm64 && export SUBARCH=arm64
