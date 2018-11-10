@@ -23,6 +23,9 @@ on property:sys.boot_completed=1
     # allows FKUpdater to know this feature is supported
     setprop fku.profiles 1
 
+    # Switch to CFQ I/O scheduler
+    setprop sys.io.scheduler cfq
+
     # according to Qcom this legacy value improves first launch latencies
     # stock value is 512k
     setprop dalvik.vm.heapminfree 2m
