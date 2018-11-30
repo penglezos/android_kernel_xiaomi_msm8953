@@ -1235,7 +1235,11 @@ static const struct attribute_group *zram_disk_attr_groups[] = {
 	NULL,
 };
 
-static int create_device(struct zram *zram, int device_id)
+/*
+ * Allocate and initialize new zram device. the function returns
+ * '>= 0' device_id upon success, and negative value otherwise.
+ */
+static int zram_add(void)
 {
 	struct zram *zram;
 	struct request_queue *queue;
@@ -1347,16 +1351,6 @@ static int zram_remove(struct zram *zram)
 	zram->claim = true;
 	mutex_unlock(&bdev->bd_mutex);
 
-	/*
-	 * Remove sysfs first, so no one will perform a disksize
-	 * store while we destroy the devices. This also helps during
-	 * hot_remove -- zram_reset_device() is the last holder of
-	 * ->init_lock, no later/concurrent disksize_store() or any
-	 * other sysfs handlers are possible.
-	 */
-	sysfs_remove_group(&disk_to_dev(zram->disk)->kobj,
-			&zram_disk_attr_group);
-
 	/* Make sure all the pending I/O are finished */
 	fsync_bdev(bdev);
 	zram_reset_device(zram);
@@ -1396,8 +1390,12 @@ static ssize_t hot_remove_store(struct class *class,
 	struct zram *zram;
 	int ret, dev_id;
 
-	for (i = 0; i < nr; i++) {
-		zram = &zram_devices[i];
+	/* dev_id is gendisk->first_minor, which is `int' */
+	ret = kstrtoint(buf, 10, &dev_id);
+	if (ret)
+		return ret;
+	if (dev_id < 0)
+		return -EINVAL;
 
 	mutex_lock(&zram_index_mutex);
 
