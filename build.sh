@@ -25,23 +25,13 @@ export CROSS_COMPILE="/home/englezos/kernel/aarch64-linux-android-4.9/bin/aarch6
 make_zip()
 {
 		cd $REPACK_DIR
-		mkdir kernel
-		mkdir treble
-		mkdir nontreble
-		cp $KERNEL_DIR/out/arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-mido-nontreble.dtb $REPACK_DIR/nontreble/
-		cp $KERNEL_DIR/out/arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-mido-treble.dtb $REPACK_DIR/treble/
-		cp $KERNEL_DIR/out/arch/arm64/boot/Image.gz $REPACK_DIR/kernel/
+		cp $KERNEL_DIR/out/arch/arm64/boot/Image.gz-dtb $REPACK_DIR/
 		FINAL_ZIP="Englezos-${VERSION}-${DATE}.zip"
         zip -r9 "${FINAL_ZIP}" *
 		cp *.zip $OUT
 		rm *.zip
-		rm -rf kernel
-		rm -rf treble
-		rm -rf nontreble
 		cd $KERNEL_DIR
-		rm out/arch/arm64/boot/Image.gz
-		#rm arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-mido-nontreble.dtb
-		#rm arch/arm64/boot/dts/qcom/msm8953-qrd-sku3-mido-treble.dtb
+		rm zip/Image.gz-dtb
 }
 
 rm -rf out
