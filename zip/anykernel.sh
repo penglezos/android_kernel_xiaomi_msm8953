@@ -13,14 +13,12 @@ device.name1=mido
 device.name2=redmi note 4
 device.name3=Redmi Note 4
 device.name4=Redmi Note 4x
-supported.sdk1=27
-supported.sdk2=28
 '; } # end properties
 
 # shell variables
-block=/dev/block/platform/soc/7824900.sdhci/by-name/boot;
+block=/dev/block/bootdevice/by-name/boot;
 is_slot_device=0;
-ramdisk_compression=gz;
+ramdisk_compression=auto;
 
 
 ## AnyKernel methods (DO NOT CHANGE)
@@ -31,11 +29,16 @@ ramdisk_compression=gz;
 ## AnyKernel file attributes
 # set permissions/ownership for included ramdisk files
 chmod -R 750 $ramdisk/*;
-chmod -R 755 $ramdisk/sbin;
 chown -R root:root $ramdisk/*;
 
+## Treble Check
+is_treble=$(file_getprop /system/build.prop "ro.treble.enabled");
+if [ ! "$is_treble" -o "$is_treble" == "false" ]; then
+  ui_print " ";
+  ui_print "Englezos Kernel only supports Treble ROMS!";
+  exit 1;
+fi;
 
-## AnyKernel install
 dump_boot;
 
 # begin ramdisk changes

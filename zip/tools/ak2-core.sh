@@ -159,6 +159,27 @@ repack_ramdisk() {
     mv -f ramdisk-new.cpio.$compext-mtk ramdisk-new.cpio.$compext;
   fi;
 }
+flash_dtbo() {
+  for i in dtbo dtbo.img; do
+    if [ -f /tmp/anykernel/$i ]; then
+      dtbo=$i;
+      break;
+    fi;
+  done;
+  if [ "$dtbo" ]; then
+    dtbo_block=/dev/block/bootdevice/by-name/dtbo$slot;
+    if [ ! -e "$(echo $dtbo_block)" ]; then
+      ui_print " "; ui_print "dtbo partition could not be found. Aborting..."; exit 1;
+    fi;
+    if [ -f "$bin/flash_erase" -a -f "$bin/nandwrite" ]; then
+      $bin/flash_erase $dtbo_block 0 0;
+      $bin/nandwrite -p $dtbo_block /tmp/anykernel/$dtbo;
+    else
+      dd if=/dev/zero of=$dtbo_block 2>/dev/null;
+      dd if=/tmp/anykernel/$dtbo of=$dtbo_block;
+    fi;
+  fi;
+}
 flash_boot() {
   local name arch os type comp addr ep cmdline cmd board base pagesize kerneloff ramdiskoff tagsoff osver oslvl second secondoff hash unknown i kernel rd dtb rpm pk8 cert avbtype dtbo dtbo_block;
   cd $split_img;
@@ -192,11 +213,18 @@ flash_boot() {
     if [ -f *-oslevel ]; then
       oslvl=`cat *-oslevel`;
     fi;
+    if [ -f *-headerversion ]; then
+      hdrver=`cat *-headerversion`;
+    fi;
     if [ -f *-second ]; then
       second=`ls *-second`;
       second="--second $split_img/$second";
       secondoff=`cat *-secondoff`;
       secondoff="--second_offset $secondoff";
+    fi;
+    if [ -f *-recoverydtbo ]; then
+      recoverydtbo=`ls *-recoverydtbo`;
+      recoverydtbo="--recovery_dtbo $split_img/$recoverydtbo";
     fi;
     if [ -f *-hash ]; then
       hash=`cat *-hash`;
@@ -252,7 +280,7 @@ flash_boot() {
   elif [ -f "$bin/pxa-mkbootimg" ]; then
     $bin/pxa-mkbootimg --kernel $kernel --ramdisk $rd $second --cmdline "$cmdline" --board "$board" --base $base --pagesize $pagesize --kernel_offset $kerneloff --ramdisk_offset $ramdiskoff $secondoff --tags_offset "$tagsoff" --unknown $unknown $dtb --output boot-new.img;
   else
-    $bin/mkbootimg --kernel $kernel --ramdisk $rd $second --cmdline "$cmdline" --board "$board" --base $base --pagesize $pagesize --kernel_offset $kerneloff --ramdisk_offset $ramdiskoff $secondoff --tags_offset "$tagsoff" --os_version "$osver" --os_patch_level "$oslvl" $hash $dtb --output boot-new.img;
+    $bin/mkbootimg --kernel $kernel --ramdisk $rd $second $recoverydtbo --cmdline "$cmdline" --board "$board" --base $base --pagesize $pagesize --kernel_offset $kerneloff --ramdisk_offset $ramdiskoff $secondoff --tags_offset "$tagsoff" --os_version "$osver" --os_patch_level "$oslvl" --header_version "$hdrver" $hash $dtb --output boot-new.img;
   fi;
   if [ $? != 0 ]; then
     ui_print " "; ui_print "Repacking image failed. Aborting..."; exit 1;
@@ -314,29 +342,11 @@ flash_boot() {
     dd if=/dev/zero of=$block 2>/dev/null;
     dd if=/tmp/anykernel/boot-new.img of=$block;
   fi;
-  for i in dtbo dtbo.img; do
-    if [ -f /tmp/anykernel/$i ]; then
-      dtbo=$i;
-      break;
-    fi;
-  done;
-  if [ "$dtbo" ]; then
-    dtbo_block=/dev/block/bootdevice/by-name/dtbo$slot;
-    if [ ! -e "$(echo $dtbo_block)" ]; then
-      ui_print " "; ui_print "dtbo partition could not be found. Aborting..."; exit 1;
-    fi;
-    if [ -f "$bin/flash_erase" -a -f "$bin/nandwrite" ]; then
-      $bin/flash_erase $dtbo_block 0 0;
-      $bin/nandwrite -p $dtbo_block /tmp/anykernel/$dtbo;
-    else
-      dd if=/dev/zero of=$dtbo_block 2>/dev/null;
-      dd if=/tmp/anykernel/$dtbo of=$dtbo_block;
-    fi;
-  fi;
 }
 write_boot() {
   repack_ramdisk;
   flash_boot;
+  flash_dtbo;
 }
 
 # backup_file <file>
@@ -566,6 +576,8 @@ case $block in
             ui_print " "; ui_print "Unable to determine mtd $block partition. Aborting..."; exit 1;
           fi;
           target=/dev/mtd/$mtd;
+        elif [ -e /dev/block/by-name/$part ]; then
+          target=/dev/block/by-name/$part;
         elif [ -e /dev/block/bootdevice/by-name/$part ]; then
           target=/dev/block/bootdevice/by-name/$part;
         elif [ -e /dev/block/platform/*/by-name/$part ]; then
