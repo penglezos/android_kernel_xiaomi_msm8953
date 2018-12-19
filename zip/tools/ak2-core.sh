@@ -1,4 +1,6 @@
 ## AnyKernel methods (DO NOT CHANGE)
+# osm0sis @ xda-developers
+
 # set up extracted files and directories
 ramdisk=/tmp/anykernel/ramdisk;
 bin=/tmp/anykernel/tools;
@@ -18,7 +20,7 @@ ui_print() { echo -e "ui_print $1\nui_print" > $OUTFD; }
 contains() { test "${1#*$2}" != "$1" && return 0 || return 1; }
 
 # file_getprop <file> <property>
-file_getprop() { grep "^$2=" "$1" | cut -d= -f2; }
+file_getprop() { grep "^$2=" "$1" | cut -d= -f2-; }
 
 # reset anykernel directory
 reset_ak() {
@@ -355,10 +357,11 @@ backup_file() { test ! -f $1~ && cp $1 $1~; }
 # restore_file <file>
 restore_file() { test -f $1~ && mv -f $1~ $1; }
 
-# replace_string <file> <if search string> <original string> <replacement string>
+# replace_string <file> <if search string> <original string> <replacement string> <scope>
 replace_string() {
+  test "$5" == "global" && local scope=g;
   if [ -z "$(grep "$2" $1)" ]; then
-    sed -i "s;${3};${4};" $1;
+    sed -i "s;${3};${4};${scope}" $1;
   fi;
 }
 
