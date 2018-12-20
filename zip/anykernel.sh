@@ -40,6 +40,7 @@ if [ ! "$is_treble" -o "$is_treble" == "false" ]; then
   exit 1;
 fi;
 
+## AnyKernel install
 dump_boot;
 
 # begin ramdisk changes
