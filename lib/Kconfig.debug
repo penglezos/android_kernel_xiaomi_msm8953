@@ -661,27 +661,6 @@ source "lib/Kconfig.kasan"
 
 endmenu # "Memory Debugging"
 
-config ARCH_HAS_KCOV
-	bool
-	help
-	  KCOV does not have any arch-specific code, but currently it is enabled
-	  only for x86_64. KCOV requires testing on other archs, and most likely
-	  disabling of instrumentation for some early boot code.
-
-config KCOV
-	bool "Code coverage for fuzzing"
-	depends on ARCH_HAS_KCOV
-	select DEBUG_FS
-	help
-	  KCOV exposes kernel code coverage information in a form suitable
-	  for coverage-guided fuzzing (randomized testing).
-
-	  If RANDOMIZE_BASE is enabled, PC values will not be stable across
-	  different machines and across reboots. If you need stable PC values,
-	  disable RANDOMIZE_BASE.
-
-	  For more details, see Documentation/kcov.txt.
-
 config DEBUG_SHIRQ
 	bool "Debug shared IRQ handlers"
 	depends on DEBUG_KERNEL
@@ -1825,27 +1804,15 @@ config TEST_UDELAY
 
 	  If unsure, say N.
 
-config MEMTEST
-	bool "Memtest"
-	depends on HAVE_MEMBLOCK
-	---help---
-	  This option adds a kernel parameter 'memtest', which allows memtest
-	  to be set.
-	        memtest=0, mean disabled; -- default
-	        memtest=1, mean do 1 test pattern;
-	        ...
-	        memtest=17, mean do 17 test patterns.
-	  If you are unsure how to answer this question, answer N.
-
-config CC_WERROR
-	bool "Treat all compile warnings as errors"
-	default n
+config BUG_ON_DATA_CORRUPTION
+	bool "Trigger a BUG when data corruption is detected"
+	select CONFIG_DEBUG_LIST
 	help
-	 Select this option to set compiler warnings as errors,
-	 to prevent easily-fixable problems from creeping into
-	 the codebase.
+	  Select this option if the kernel should BUG when it encounters
+	  data corruption in kernel memory structures when they get checked
+	  for validity.
 
-	 If unsure, say N.
+	  If unsure, say N.
 
 source "samples/Kconfig"
 
