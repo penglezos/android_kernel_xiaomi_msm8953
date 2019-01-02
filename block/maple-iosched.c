@@ -21,7 +21,7 @@
 #include <linux/powersuspend.h>
 #endif
 
-#define MAPLE_IOSCHED_PATCHLEVEL	(5)
+#define MAPLE_IOSCHED_PATCHLEVEL	(4)
 
 enum { ASYNC, SYNC };
 
@@ -171,18 +171,18 @@ maple_choose_request(struct maple_data *mdata, int data_dir)
 
 	/*
 	 * Retrieve request from available fifo list.
-	 * Asynchronous requests have priority over synchronous.
+	 * Synchronous requests have priority over asynchronous.
 	 * Read requests have priority over write.
 	 */
-	if (!list_empty(&async[data_dir]))
-		return rq_entry_fifo(async[data_dir].next);
 	if (!list_empty(&sync[data_dir]))
 		return rq_entry_fifo(sync[data_dir].next);
+	if (!list_empty(&async[data_dir]))
+		return rq_entry_fifo(async[data_dir].next);
 
-	if (!list_empty(&async[!data_dir]))
-			return rq_entry_fifo(async[!data_dir].next);
 	if (!list_empty(&sync[!data_dir]))
 		return rq_entry_fifo(sync[!data_dir].next);
+	if (!list_empty(&async[!data_dir]))
+		return rq_entry_fifo(async[!data_dir].next);
 
 	return NULL;
 }
@@ -316,6 +316,11 @@ maple_exit_queue(struct elevator_queue *e)
 {
 	struct maple_data *mdata = e->elevator_data;
 
+	BUG_ON(!list_empty(&mdata->fifo_list[SYNC][READ]));
+	BUG_ON(!list_empty(&mdata->fifo_list[SYNC][WRITE]));
+	BUG_ON(!list_empty(&mdata->fifo_list[ASYNC][READ]));
+	BUG_ON(!list_empty(&mdata->fifo_list[ASYNC][WRITE]));
+
 	/* Free structure */
 	kfree(mdata);
 }
@@ -433,4 +438,5 @@ module_exit(maple_exit);
 MODULE_AUTHOR("Joe Maples");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Maple I/O Scheduler");
-MODULE_VERSION("1.0");
+MODULE_VERSION("Testing");
+
