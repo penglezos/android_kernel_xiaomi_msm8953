@@ -46,7 +46,12 @@ dump_boot;
 # begin ramdisk changes
 
 # init.rc
-insert_line init.rc 'englezos' after 'import /init.\${ro.zygote}.rc' 'import /init.englezos.rc';
+insert_line init.rc "import /init.englezos.rc" after "import /init.trace.rc" "import /init.englezos.rc";
+
+# sepolicy
+$bin/magiskpolicy --load sepolicy --save sepolicy \
+  "allow init rootfs file execute_no_trans" \
+;
 
 # end ramdisk changes
 
