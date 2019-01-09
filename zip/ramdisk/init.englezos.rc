@@ -36,4 +36,5 @@ on property:sys.boot_completed=1
     write /sys/block/sda/queue/iostats 1
 
 on property:init.svc.qcom-post-boot=stopped
+    write /proc/sys/vm/swappiness 100
     write /sys/module/lowmemorykiller/parameters/minfree "18432,23040,27648,32256,36864,46080"
