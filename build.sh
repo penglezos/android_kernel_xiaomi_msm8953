@@ -17,7 +17,7 @@ KERNEL_DIR=$PWD
 REPACK_DIR=$KERNEL_DIR/zip
 OUT=$KERNEL_DIR/out
 ZIP_NAME="$VERSION"-"$DATE"
-VERSION="mido-12.0"
+VERSION="mido-13.0"
 DATE=`date +"%Y%m%d"`
 export ARCH=arm64 && export SUBARCH=arm64
 export CROSS_COMPILE="/home/englezos/kernel/aarch64-linux-android-4.9/bin/aarch64-linux-android-"
