@@ -24,9 +24,6 @@
 #include <linux/input.h>
 #include <linux/time.h>
 #include <linux/cpu_boost.h>
-#ifdef CONFIG_STATE_NOTIFIER
-#include <linux/state_notifier.h>
-#endif
 
 struct cpu_sync {
 	int cpu;
@@ -273,11 +270,6 @@ static void cpuboost_input_event(struct input_handle *handle,
 		unsigned int type, unsigned int code, int value)
 {
 	u64 now;
-
-#ifdef CONFIG_STATE_NOTIFIER
-	if (state_suspended)
-		return;
-#endif
 
 	if (!input_boost_enabled)
 		return;
