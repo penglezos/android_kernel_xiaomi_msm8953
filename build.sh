@@ -36,10 +36,6 @@ rm *.zip
 cd $KERNEL_DIR
 rm zip/Image.gz-dtb
 
-if [ -f out/arch/arm64/boot/"Image.gz-dtb" ]; then
 BUILD_END=$(date +"%s")
 DIFF=$(($BUILD_END - $BUILD_START))
 echo -e "Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds."
-else
-echo "$(tput setaf 1) Build Failed. $(tput sgr 0)"
-fi
