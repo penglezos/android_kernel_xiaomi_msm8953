@@ -615,10 +615,55 @@ static void ks8851_rx_pkts3(struct ks8851_net *ks)
 	rxfc = ks8851_rdreg8(ks, KS_RXFC);
 	rxfct = rxfc;
 
-	if (rxfc == 0) {
-		pr_debug("ks8851: Frame count is 0 NOP further\n");
-		return;
-	}
+	netif_dbg(ks, rx_status, ks->netdev,
+		  "%s: %d packets\n", __func__, rxfc);
+
+	/* Currently we're issuing a read per packet, but we could possibly
+	 * improve the code by issuing a single read, getting the receive
+	 * header, allocating the packet and then reading the packet data
+	 * out in one go.
+	 *
+	 * This form of operation would require us to hold the SPI bus'
+	 * chipselect low during the entie transaction to avoid any
+	 * reset to the data stream coming from the chip.
+	 */
+
+	for (; rxfc != 0; rxfc--) {
+		rxh = ks8851_rdreg32(ks, KS_RXFHSR);
+		rxstat = rxh & 0xffff;
+		rxlen = (rxh >> 16) & 0xfff;
+
+		netif_dbg(ks, rx_status, ks->netdev,
+			  "rx: stat 0x%04x, len 0x%04x\n", rxstat, rxlen);
+
+		/* the length of the packet includes the 32bit CRC */
+
+		/* set dma read address */
+		ks8851_wrreg16(ks, KS_RXFDPR, RXFDPR_RXFPAI | 0x00);
+
+		/* start DMA access */
+		ks8851_wrreg16(ks, KS_RXQCR, ks->rc_rxqcr | RXQCR_SDA);
+
+		if (rxlen > 4) {
+			unsigned int rxalign;
+
+			rxlen -= 4;
+			rxalign = ALIGN(rxlen, 4);
+			skb = netdev_alloc_skb_ip_align(ks->netdev, rxalign);
+			if (skb) {
+
+				/* 4 bytes of status header + 4 bytes of
+				 * garbage: we put them before ethernet
+				 * header, so that they are copied,
+				 * but ignored.
+				 */
+
+				rxpkt = skb_put(skb, rxlen) - 8;
+
+				ks8851_rdfifo(ks, rxpkt, rxalign + 8);
+
+				if (netif_msg_pktdata(ks))
+					ks8851_dbg_dumpkkt(ks, rxpkt);
 
 	/* tabulate all frame sizes so we can do one read for all frames */
 	rxfifosize = ks8851_rdfifolen(ks, rxfc);
@@ -667,28 +712,9 @@ static void ks8851_rx_pkts3(struct ks8851_net *ks)
 			index32 = 0;
 			rxpkt = (u8 *)&buf32[index32];
 		}
-		/* swap bytes to make the correct order */
-		for (; rxlen32 > 0; rxlen32--, index32++)
-			buf32[index32] = htonl(buf32[index32]);
 
-		/* send packet on its way */
-		skb = netdev_alloc_skb_ip_align(ks->netdev, rxalign);
-		skb_add_data(skb, rxpkt, rxalign);
-
-		if (netif_msg_pktdata(ks))
-			ks8851_dbg_dumpkkt(ks, rxpkt);
-
-		skb->protocol = eth_type_trans(skb, ks->netdev);
-		skb->tstamp = ktime_get();
-		netif_rx_ni(skb);
-
-		/* record packet stats */
-		ks->netdev->stats.rx_packets++;
-		ks->netdev->stats.rx_bytes += rxlen;
-			if (totallen > rxfifosize) {
-				kfree(buf1);
-				break;
-			}
+		/* end DMA access and dequeue packet */
+		ks8851_wrreg16(ks, KS_RXQCR, ks->rc_rxqcr | RXQCR_RRXEF);
 	}
 	ks8851_wrreg16(ks, KS_RXQCR, ks->rc_rxqcr);
 	kfree(buf);
@@ -940,6 +966,15 @@ static void ks8851_tx_work(struct work_struct *work)
 static int ks8851_net_open(struct net_device *dev)
 {
 	struct ks8851_net *ks = netdev_priv(dev);
+	int ret;
+
+	ret = request_threaded_irq(dev->irq, NULL, ks8851_irq,
+				   IRQF_TRIGGER_LOW | IRQF_ONESHOT,
+				   dev->name, ks);
+	if (ret < 0) {
+		netdev_err(dev, "failed to get irq\n");
+		return ret;
+	}
 
 	/* lock the card, even if we may not actually be doing anything
 	 * else at the moment */
@@ -1008,6 +1043,7 @@ static int ks8851_net_open(struct net_device *dev)
 	netif_dbg(ks, ifup, ks->netdev, "network device up\n");
 
 	mutex_unlock(&ks->lock);
+	mii_check_link(&ks->mii);
 	return 0;
 }
 
@@ -1058,6 +1094,8 @@ static int ks8851_net_stop(struct net_device *dev)
 
 		dev_kfree_skb(txb);
 	}
+
+	free_irq(dev->irq, ks);
 
 	return 0;
 }
@@ -1687,6 +1725,7 @@ static int ks8851_probe(struct spi_device *spi)
 
 	spi_set_drvdata(spi, ks);
 
+	netif_carrier_off(ks->netdev);
 	ndev->if_port = IF_PORT_100BASET;
 	ndev->netdev_ops = &ks8851_netdev_ops;
 	ndev->irq = spi->irq;
@@ -1725,14 +1764,6 @@ static int ks8851_probe(struct spi_device *spi)
 	ks8851_read_selftest(ks);
 	ks8851_init_mac(ks);
 
-	ret = request_threaded_irq(spi->irq, NULL, ks8851_irq,
-				   IRQF_TRIGGER_LOW | IRQF_ONESHOT,
-				   ndev->name, ks);
-	if (ret < 0) {
-		dev_err(&spi->dev, "failed to get irq\n");
-		goto err_irq;
-	}
-
 	ret = register_netdev(ndev);
 	if (ret) {
 		dev_err(&spi->dev, "failed to register network device\n");
@@ -1745,14 +1776,14 @@ static int ks8851_probe(struct spi_device *spi)
 
 	return 0;
 
-
 err_netdev:
-	free_irq(ndev->irq, ks);
-
-err_irq:
+err_id:
 	if (gpio_is_valid(gpio))
 		gpio_set_value(gpio, 0);
-err_id:
+	regulator_disable(ks->vdd_reg);
+err_reg:
+	regulator_disable(ks->vdd_io);
+err_reg_io:
 err_gpio:
 	free_netdev(ndev);
 	return ret;
@@ -1766,7 +1797,6 @@ static int ks8851_remove(struct spi_device *spi)
 		dev_info(&spi->dev, "remove\n");
 
 	unregister_netdev(priv->netdev);
-	free_irq(spi->irq, priv);
 	if (gpio_is_valid(priv->gpio))
 		gpio_set_value(priv->gpio, 0);
 	regulator_disable(priv->vdd_reg);
