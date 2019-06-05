@@ -14,7 +14,7 @@ LC_ALL=C date +%Y-%m-%d
 date=`date +"%Y%m%d-%H%M"`
 BUILD_START=$(date +"%s")
 KERNEL_DIR=$PWD
-REPACK_DIR=$KERNEL_DIR/zip
+REPACK_DIR=$KERNEL_DIR/AnyKernel3
 OUT=$KERNEL_DIR/out
 VERSION="r20"
 export ARCH=arm64 && export SUBARCH=arm64
@@ -34,7 +34,7 @@ zip -r9 "${FINAL_ZIP}" *
 cp *.zip $OUT
 rm *.zip
 cd $KERNEL_DIR
-rm zip/Image.gz-dtb
+rm AnyKernel3/Image.gz-dtb
 
 BUILD_END=$(date +"%s")
 DIFF=$(($BUILD_END - $BUILD_START))
