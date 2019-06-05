@@ -17,7 +17,7 @@ supported.versions=8.1.0 - 9
 '; } # end properties
 
 # shell variables
-block=/dev/block/platform/omap/omap_hsmmc.0/by-name/boot;
+block=/dev/block/bootdevice/by-name/boot;
 is_slot_device=0;
 ramdisk_compression=auto;
 
@@ -45,8 +45,8 @@ fi;
 dump_boot;
 
 # begin ramdisk changes
+# init.rc
 insert_line init.rc "import /init.englezos.rc" after "import /init.trace.rc" "import /init.englezos.rc";
-
 # end ramdisk changes
 
 write_boot;
