@@ -24,9 +24,6 @@ module_param(input_boost_freq, uint, 0644);
 static __read_mostly unsigned int input_boost_ms = CONFIG_INPUT_BOOST_DURATION_MS;
 module_param(input_boost_ms, uint, 0644);
 
-static __read_mostly unsigned int wake_boost_enabled = 1;
-module_param(wake_boost_enabled, uint, 0644);
-
 struct boost_drv {
 	struct workqueue_struct *wq;
 	struct work_struct input_boost;
@@ -221,9 +218,6 @@ static int fb_notifier_cb(struct notifier_block *nb,
 
 	/* Parse framebuffer blank events as soon as they occur */
 	if (action != FB_EARLY_EVENT_BLANK)
-		return NOTIFY_OK;
-
-	if (unlikely(!wake_boost_enabled))
 		return NOTIFY_OK;
 
 	/* Boost when the screen turns on and unboost when it turns off */
