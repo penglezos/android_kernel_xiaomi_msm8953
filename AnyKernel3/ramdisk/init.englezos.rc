@@ -1,7 +1,4 @@
 # Englezos Kernel tweaks and parameters
-# Copyright (C) 2019 Englezos
-
-import /init.performance_profiles.rc
 
 on late-fs
     # boot time fs tune
