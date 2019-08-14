@@ -14,6 +14,7 @@ device.name2=redmi note 4
 device.name3=Redmi Note 4
 device.name4=Redmi Note 4x
 supported.versions=8.1.0 - 9
+supported.patchlevels=2019-01 -
 '; } # end properties
 
 # shell variables
@@ -29,8 +30,8 @@ ramdisk_compression=auto;
 
 ## AnyKernel file attributes
 # set permissions/ownership for included ramdisk files
-chmod -R 750 $ramdisk/*;
-chown -R root:root $ramdisk/*;
+set_perm_recursive 0 0 755 644 $ramdisk/*;
+set_perm_recursive 0 0 750 750 $ramdisk/init* $ramdisk/sbin;
 
 
 ## Treble Check
