@@ -16,9 +16,9 @@ BUILD_START=$(date +"%s")
 KERNEL_DIR=$PWD
 REPACK_DIR=$KERNEL_DIR/AnyKernel3
 OUT=$KERNEL_DIR/out
-VERSION="r24"
+VERSION="r25"
 export ARCH=arm64 && export SUBARCH=arm64
-export CROSS_COMPILE="/home/englezos/kernel/aarch64-linux-android-4.9/bin/aarch64-linux-android-"
+export CROSS_COMPILE="/home/penglezos/kernel/tools/aarch64-linux-android-4.9/bin/aarch64-linux-android-"
 
 rm -rf out
 mkdir -p out
