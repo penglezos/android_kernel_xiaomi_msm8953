@@ -13,7 +13,7 @@ device.name1=mido
 device.name2=redmi note 4
 device.name3=Redmi Note 4
 device.name4=Redmi Note 4x
-supported.versions=8.1.0 - 9
+supported.versions=8.1.0 - 10
 supported.patchlevels=2019-01 -
 '; } # end properties
 
